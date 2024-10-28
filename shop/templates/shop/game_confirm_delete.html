@@ -1,7 +1,0 @@
-<h1>Delete {{ game.name }}</h1>
-<p>Are you sure you want to delete this game?</p>
-<form method="post">
-    {% csrf_token %}
-    <button type="submit">Confirm</button>
-</form>
-<a href="{% url 'game_list' %}">Cancel</a>

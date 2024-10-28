@@ -1,7 +1,0 @@
-<h1>Categories</h1>
-<ul>
-    {% for category in categories %}
-        <li>{{ category.name }}: {{ category.description }}</li>
-    {% endfor %}
-</ul>
-<a href="{% url 'game_list' %}">View Games</a>
