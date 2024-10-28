@@ -1,3 +1,29 @@
+# Python cache and compiled files
 __pycache__/
+*.pyc
+*.pyo
+
+# Django database
 db.sqlite3
 
+# Django migrations
+*/migrations/*
+
+# Environment variables
+.env
+
+# IDE and editor configurations
+.idea/
+.vscode/
+.DS_Store
+
+# Virtual environment
+venv/
+env/
+
+# Static and media files
+staticfiles/
+media/
+
+# Logs
+*.log
