@@ -1,0 +1,12 @@
+<h1>{{ game.name }}</h1>
+<p>{{ game.description }}</p>
+<p>Category: {{ game.category.name }}</p>
+<p>Points: {{ game.points }}</p>
+<p>Stock: {{ game.stock_quantity }}</p>
+<img src="{{ game.picture.url }}" alt="{{ game.name }}">
+
+<a href="{% url 'game_update' game.pk %}">Edit</a>
+<form method="post" action="{% url 'game_delete' game.pk %}">
+    {% csrf_token %}
+    <button type="submit">Delete</button>
+</form>

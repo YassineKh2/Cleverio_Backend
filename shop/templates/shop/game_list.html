@@ -1,0 +1,9 @@
+<h1>Games</h1>
+<ul>
+    {% for game in games %}
+        <li>
+            <a href="{% url 'game_detail' game.pk %}">{{ game.name }}</a> - {{ game.points }} points
+        </li>
+    {% endfor %}
+</ul>
+<a href="{% url 'game_create' %}">Add New Game</a>
