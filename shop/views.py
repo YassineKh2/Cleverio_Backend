@@ -7,6 +7,8 @@ from django.contrib.auth import get_user_model
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.timezone import localtime
 from django.contrib.auth.models import User
+from urllib.parse import quote
+
 
 User = get_user_model()
 
@@ -173,6 +175,10 @@ def game_detail(request, game_id):
 
 
 
+
+
+
+
 @csrf_exempt
 def purchase_game(request):
     if request.method == 'POST':
@@ -310,5 +316,25 @@ def delete_purchase(request):
             return JsonResponse({'message': 'Purchases deleted successfully', 'points_refunded': total_refunded}, status=200)
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=400)
+
+    return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+
+from django.http import JsonResponse
+from urllib.parse import quote
+
+@csrf_exempt
+def generate_amazon_link(request):
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        game_name = data.get('game_name')
+
+        if game_name:
+            # Create a search query for Amazon
+            search_query = quote(game_name)
+            amazon_link = f"https://www.amazon.com/s?k={search_query}"
+            return JsonResponse({'amazon_link': amazon_link}, status=200)
+        
+        return JsonResponse({'error': 'Game name is required'}, status=400)
 
     return JsonResponse({'error': 'Invalid request method'}, status=405)
