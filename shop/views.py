@@ -1,7 +1,14 @@
 import json
 from django.http import JsonResponse, HttpResponse, HttpResponseNotAllowed
 from django.views.decorators.csrf import csrf_exempt
-from .models import Category, Game
+from .models import Category, Game ,Purchase
+from django.conf import settings
+from django.contrib.auth import get_user_model
+from django.core.exceptions import ObjectDoesNotExist
+from django.utils.timezone import localtime
+from django.contrib.auth.models import User
+
+User = get_user_model()
 
 @csrf_exempt
 def category_list(request):
@@ -161,3 +168,147 @@ def game_detail(request, game_id):
         return JsonResponse({'message': 'Game deleted successfully'})
 
     return HttpResponseNotAllowed(['GET', 'PUT', 'DELETE'])
+
+
+
+
+
+@csrf_exempt
+def purchase_game(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            user_id = data.get("user_id")
+            game_id = data.get("game_id")
+
+            # Retrieve the user and game
+            user = User.objects.get(id=user_id)
+            game = Game.objects.get(id=game_id)
+
+            # Check if the user has enough points
+            if user.points < game.points:
+                return JsonResponse({'error': 'Not enough points to make this purchase'}, status=400)
+
+            # Check if the game is in stock
+            if game.stock_quantity < 1:
+                return JsonResponse({'error': 'Game out of stock'}, status=400)
+
+            # Deduct points and update stock quantity
+            user.points -= game.points
+            game.stock_quantity -= 1
+            user.save()
+            game.save()
+
+            # Record the purchase
+            purchase = Purchase.objects.create(
+                user=user,
+                game=game,
+                points_used=game.points
+            )
+
+            return JsonResponse({
+                'message': 'Purchase successful',
+                'purchase': {
+                    'id': purchase.id,
+                    'game': game.name,
+                    'points_used': game.points,
+                    'purchase_date': purchase.purchase_date
+                }
+            })
+
+        except (User.DoesNotExist, Game.DoesNotExist):
+            return JsonResponse({'error': 'User or game not found'}, status=404)
+        except json.JSONDecodeError:
+            return JsonResponse({'error': 'Invalid JSON data'}, status=400)
+
+    return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+
+def user_purchases(request, user_id):
+    # Filter purchases by user_id
+    try:
+        purchases = Purchase.objects.filter(user_id=user_id).select_related('game')
+        if not purchases.exists():
+            return JsonResponse({"message": "No purchases found for this user."}, status=404)
+
+        # Format the purchase data for the response
+        purchases_data = [
+            {
+                "game": purchase.game.name,
+                "points_used": purchase.points_used,
+                "purchase_date": localtime(purchase.purchase_date).strftime("%Y-%m-%d %H:%M:%S"),
+            }
+            for purchase in purchases
+        ]
+        
+        return JsonResponse({"user_id": user_id, "purchases": purchases_data}, status=200)
+
+    except ObjectDoesNotExist:
+        return JsonResponse({"message": "User or purchases not found."}, status=404)
+    
+
+ 
+def all_users_purchases(request):
+    try:
+        # Fetch all purchases and prefetch related user and game details
+        purchases = Purchase.objects.select_related('user', 'game')
+
+        if not purchases.exists():
+            return JsonResponse({"message": "No purchases found."}, status=404)
+
+        # Format the purchase data for the response
+        purchases_data = {}
+        for purchase in purchases:
+            user_id = purchase.user.id
+            if user_id not in purchases_data:
+                purchases_data[user_id] = {
+                    "username": purchase.user.username,
+                    "email": purchase.user.email,  # Add email address here
+                    "purchases": []
+                }
+            purchases_data[user_id]["purchases"].append({
+                "game": purchase.game.name,
+                "points_used": purchase.points_used,
+                "purchase_date": localtime(purchase.purchase_date).strftime("%Y-%m-%d %H:%M:%S"),
+            })
+
+        return JsonResponse(purchases_data, status=200)
+
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+@csrf_exempt
+def delete_purchase(request):
+    if request.method == 'DELETE':
+        data = json.loads(request.body)
+        user_id = data.get('user_id')
+        game_name = data.get('game')
+
+        try:
+            # Fetch all purchases based on user_id and game_name
+            purchases = Purchase.objects.filter(user_id=user_id, game__name=game_name)
+
+            if not purchases.exists():
+                return JsonResponse({'error': 'Purchase not found'}, status=404)
+
+            total_refunded = 0
+            for purchase in purchases:
+                total_refunded += purchase.points_used
+                
+                # Refund points logic
+                user = purchase.user  # Get the user from the purchase instance
+                user.points += purchase.points_used  # Refund points
+                user.save()
+
+                # Increase the stock quantity of the game
+                game = purchase.game  # Get the associated game
+                game.stock_quantity += 1  # Increase stock by 1
+                game.save()  # Save the updated game
+
+                purchase.delete()  # Delete the purchase
+
+            return JsonResponse({'message': 'Purchases deleted successfully', 'points_refunded': total_refunded}, status=200)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)
+
+    return JsonResponse({'error': 'Invalid request method'}, status=405)
