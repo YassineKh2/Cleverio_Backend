@@ -10,14 +10,17 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
+
 from pathlib import Path
-import os 
-from corsheaders.defaults import default_headers
-from dotenv import load_dotenv
-dotenv_path = os.path.join(os.path.dirname(__file__), '.env')
-load_dotenv(dotenv_path)
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+# Build paths inside the project like this: BASE_DIR / 'subdir'.
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
@@ -49,7 +52,6 @@ INSTALLED_APPS = [
     'corsheaders',
     "Users",
     'shop',
-    "Room",
 ]
 
 
@@ -63,20 +65,15 @@ REST_FRAMEWORK = {
 from datetime import timedelta
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(days=1)
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
 }
+
+
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",  
-    "http://127.0.0.1:8000",
 ]
 
-CORS_ALLOW_HEADERS = [
-    'authorization',   
-]
-CSRF_TRUSTED_ORIGINS = [
-    "http://localhost:5173",
-]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -86,7 +83,8 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "corsheaders.middleware.CorsMiddleware",
+    'corsheaders.middleware.CorsMiddleware',  # Add this line
+
 ]
 
 
