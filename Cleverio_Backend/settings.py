@@ -72,7 +72,9 @@ CORS_ALLOWED_ORIGINS = [
 ]
 
 CORS_ALLOW_HEADERS = [
-    'authorization',   
+    'authorization',
+    'X-User-Id',
+    'content-type'   
 ]
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:5173",
