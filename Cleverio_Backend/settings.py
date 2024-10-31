@@ -10,12 +10,18 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
-from pathlib import Path
-import os 
 
+from pathlib import Path
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+# Build paths inside the project like this: BASE_DIR / 'subdir'.
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
@@ -48,7 +54,10 @@ INSTALLED_APPS = [
     "Users",
     'shop',
     'Games',
+     'Room',
 ]
+
+
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
@@ -59,13 +68,15 @@ REST_FRAMEWORK = {
 from datetime import timedelta
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(days=1)
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
 }
 
+
+
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",  
-    "http://127.0.0.1:8000",
+    'http://localhost:5173',
 ]
+CORS_ALLOW_CREDENTIALS = True
 
 
 MIDDLEWARE = [
@@ -76,9 +87,10 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    'corsheaders.middleware.CorsMiddleware',  # Add this line
+    "corsheaders.middleware.CorsMiddleware",
 
 ]
+
 
 ROOT_URLCONF = "Cleverio_Backend.urls"
 
@@ -100,7 +112,6 @@ TEMPLATES = [
     }
 
 ]
-CORS_ALLOW_ALL_ORIGINS = True  
 
 WSGI_APPLICATION = "Cleverio_Backend.wsgi.application"
 

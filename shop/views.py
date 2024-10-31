@@ -7,6 +7,9 @@ from django.contrib.auth import get_user_model
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.timezone import localtime
 from django.contrib.auth.models import User
+from urllib.parse import quote
+import requests
+
 
 User = get_user_model()
 
@@ -173,6 +176,10 @@ def game_detail(request, game_id):
 
 
 
+
+
+
+
 @csrf_exempt
 def purchase_game(request):
     if request.method == 'POST':
@@ -312,3 +319,111 @@ def delete_purchase(request):
             return JsonResponse({'error': str(e)}, status=400)
 
     return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+
+from django.http import JsonResponse
+from urllib.parse import quote
+
+@csrf_exempt
+def generate_amazon_link(request):
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        game_name = data.get('game_name')
+
+        if game_name:
+            # Create a search query for Amazon
+            search_query = quote(game_name)
+            amazon_link = f"https://www.amazon.com/s?k={search_query}"
+            return JsonResponse({'amazon_link': amazon_link}, status=200)
+        
+        return JsonResponse({'error': 'Game name is required'}, status=400)
+
+    return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+
+
+
+
+# def fetch_quiz_questions():
+#     response = requests.get("https://opentdb.com/api.php?amount=5&difficulty=easy&type=multiple")
+#     return response.json()['results']
+
+# def quiz_view(request):
+#     if request.method == 'GET':
+#         questions = fetch_quiz_questions()
+#         return JsonResponse(questions, safe=False)
+
+#     # Optionally handle other request methods (e.g., POST)
+#     return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+ 
+def fetch_quiz_questions():
+    response = requests.get("https://opentdb.com/api.php?amount=5&difficulty=easy&type=multiple")
+    return response.json()['results']
+
+@csrf_exempt
+def quiz_view(request):
+    if request.method == 'GET':
+        questions = fetch_quiz_questions()
+        return JsonResponse(questions, safe=False)
+
+    elif request.method == 'POST':
+        data = json.loads(request.body)
+        user_id = data.get('user_id')  # Get user_id from the request
+        answers = data.get('answers')  # Get user answers as a list
+        
+        # Fetch new questions to validate the answers
+        questions = fetch_quiz_questions()
+        
+        score = 0  # Initialize score
+        correct_answers = 0  # Initialize correct answers count
+
+        for question in questions:
+            correct_answer = question['correct_answer']
+            if correct_answer in answers:  # Check if the user's answer is correct
+                correct_answers += 1
+
+        # Calculate points based on the number of correct answers
+        if correct_answers > 0:
+            score += 5  # Add 5 points for each correct answer
+            # Update user's points in the database
+            try:
+                user = User.objects.get(id=user_id)
+                user.points += score
+                user.save()
+                return JsonResponse({
+                    'message': 'Quiz completed successfully',
+                    'score': correct_answers,
+                    'points_awarded': score
+                }, status=200)
+            except User.DoesNotExist:
+                return JsonResponse({'error': 'User not found'}, status=404)
+
+        return JsonResponse({'message': 'No correct answers'}, status=200)
+
+    return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+
+
+@csrf_exempt
+def add_game_points(request, user_id):
+    if request.method == 'PATCH':
+        try:
+            user = User.objects.get(id=user_id)  # Get the user by ID
+            data = json.loads(request.body)
+            points_to_add = data.get('points', 0)  # Get points from the request body
+            
+            user.points += points_to_add  # Add points to the user's current points
+            user.save()  # Save the updated user object
+
+            return JsonResponse({
+                'message': 'Points added successfully.',
+                'total_points': user.points
+            }, status=200)
+
+        except User.DoesNotExist:
+            return JsonResponse({'error': 'User not found.'}, status=404)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+    return JsonResponse({'error': 'Invalid request method.'}, status=405)
