@@ -72,7 +72,14 @@ SIMPLE_JWT = {
 }
 
 
-
+CORS_ALLOW_HEADERS = [
+    'authorization',
+    'X-User-Id',
+    'content-type'   
+]
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:5173",
+]
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:5173',
 ]
