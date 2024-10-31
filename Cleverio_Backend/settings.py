@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'corsheaders',
     "Users",
     'shop',
+    'Review',
 ]
 
 REST_FRAMEWORK = {
