@@ -1,5 +1,5 @@
 from django.db import models
-
+from Users.models import Person
 # Create your models here.
 
 class Room(models.Model):
@@ -22,6 +22,8 @@ class Room(models.Model):
 
     creation_date = models.DateField(auto_now_add=True)
     update_date = models.DateField(auto_now=True)
+
+    createdBy = models.ForeignKey(Person, related_name='rooms_created', on_delete=models.CASCADE, null=True)
 
     def __str__(self):
 

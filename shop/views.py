@@ -41,6 +41,7 @@ def category_detail(request, category_id):
             return JsonResponse({'id': category.id, 'name': category.name, 'description': category.description})
         except (json.JSONDecodeError, KeyError):
             return JsonResponse({'error': 'Invalid data'}, status=400)
+        
     
     elif request.method == 'DELETE':
         category.delete()
@@ -48,20 +49,48 @@ def category_detail(request, category_id):
 
     return HttpResponseNotAllowed(['GET', 'PUT', 'DELETE'])
 
+
+from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse, HttpResponseNotAllowed
+from .models import Category, Game
+
 @csrf_exempt
 def game_list(request):
     if request.method == 'GET':
-        games = list(Game.objects.values('id', 'name', 'points', 'category_id', 'description', 'stock_quantity'))
-        return JsonResponse(games, safe=False)
+        games = Game.objects.select_related('category').values(
+            'id', 
+            'name', 
+            'points', 
+            'category__name',
+            'description', 
+            'stock_quantity',
+            'picture'
+        )
+        games_with_category_name = [
+            {
+                'id': game['id'],
+                'name': game['name'],
+                'points': game['points'],
+                'category_name': game['category__name'],
+                'description': game['description'],
+                'stock_quantity': game['stock_quantity'],
+                'picture_url': game['picture'] if game['picture'] else None
+            }
+            for game in games
+        ]
+        return JsonResponse(games_with_category_name, safe=False)
     
     elif request.method == 'POST':
         try:
-            data = json.loads(request.body)
-            category = Category.objects.get(id=data.get('category_id'))
+            # Access form data and file data separately
+            data = request.POST
+            category_name = data.get('category_name')
+            category, created = Category.objects.get_or_create(name=category_name)
+
             game = Game.objects.create(
                 name=data.get('name'),
                 points=data.get('points'),
-                picture=data.get('picture'),  # Handle file uploads differently
+                picture=request.FILES.get('picture'),  # Handle picture file
                 category=category,
                 description=data.get('description'),
                 stock_quantity=data.get('stock_quantity', 0)
@@ -70,14 +99,18 @@ def game_list(request):
                 'id': game.id,
                 'name': game.name,
                 'points': game.points,
-                'category_id': game.category.id,
+                'category_name': game.category.name,
                 'description': game.description,
-                'stock_quantity': game.stock_quantity
+                'stock_quantity': game.stock_quantity,
+                'picture_url': game.picture.url if game.picture else None
             })
-        except (json.JSONDecodeError, KeyError, Category.DoesNotExist):
+        except (KeyError, Category.DoesNotExist):
             return JsonResponse({'error': 'Invalid data or category not found'}, status=400)
     
     return HttpResponseNotAllowed(['GET', 'POST'])
+
+
+
 
 @csrf_exempt
 def game_detail(request, game_id):
@@ -91,9 +124,10 @@ def game_detail(request, game_id):
             'id': game.id,
             'name': game.name,
             'points': game.points,
-            'category_id': game.category.id,
+            'category_name': game.category.name,
             'description': game.description,
-            'stock_quantity': game.stock_quantity
+            'stock_quantity': game.stock_quantity,
+            'picture_url': game.picture.url if game.picture else None  # Add picture URL if it exists
         })
     
     elif request.method == 'PUT':
@@ -103,14 +137,21 @@ def game_detail(request, game_id):
             game.points = data.get('points', game.points)
             game.description = data.get('description', game.description)
             game.stock_quantity = data.get('stock_quantity', game.stock_quantity)
+
+            category_name = data.get('category_name')
+            if category_name:
+                category, created = Category.objects.get_or_create(name=category_name)
+                game.category = category
+
             game.save()
             return JsonResponse({
                 'id': game.id,
                 'name': game.name,
                 'points': game.points,
-                'category_id': game.category.id,
+                'category_name': game.category.name,
                 'description': game.description,
-                'stock_quantity': game.stock_quantity
+                'stock_quantity': game.stock_quantity,
+                'picture_url': game.picture.url if game.picture else None
             })
         except (json.JSONDecodeError, KeyError):
             return JsonResponse({'error': 'Invalid data'}, status=400)

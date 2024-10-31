@@ -3,7 +3,8 @@ from django.shortcuts import get_object_or_404
 from .models import Person
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth import authenticate
-from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.tokens import AccessToken
+
 
 
 import json
@@ -140,14 +141,12 @@ def login_view(request):
             user = authenticate(request, username=username, password=password)
             
             if user is not None:
-                # Generate JWT tokens
-                refresh = RefreshToken.for_user(user)
-                # Add custom claims, e.g., role
-                refresh['role'] = user.role  # Assuming `role` is a field on the user model
+                # Generate a single access token with custom claims
+                access_token = AccessToken.for_user(user)
+                access_token['role'] = user.role  # Adding role as a custom claim
 
                 return JsonResponse({
-                    'refresh': str(refresh),
-                    'access': str(refresh.access_token),
+                    'token': str(access_token),
                 }, status=200)
             else:
                 return JsonResponse({'error': 'Invalid credentials'}, status=401)
